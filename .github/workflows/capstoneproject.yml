@@ -1,14 +1,18 @@
-name: CI Workflow for Build
+name: CI Workflow for Docker Build
+
 on:
   push:
+
 jobs:
-  endproject:
+  docker:
     env:
-      appName: "docker-image"
+     appName: "docker-image"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
       - name: Set up JDK 11
         uses: actions/setup-java@v3
         with:
@@ -17,31 +21,28 @@ jobs:
           cache: maven
       - name: Build with Maven
         run: mvn -B package --file pom.xml
-      - name: Setup Docker Build
-        uses: docker/setup-buildx-action@v2
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build and Push Dockerfile
+      - name: Build and push
         uses: docker/build-push-action@v4
-        with: 
+        with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME}}/${{ env.appName }}:latest
-        - name: Execute Kubernetes Command to Deploy code
-          uses: applyboy/ssh-action@v0.1.10
-          with:
-            host: ${{ secrets.HOST }}
-            username: ${{ secrets.USERNAME }}
-            password: ${{ secrets.PASSWORD }}
-            port: ${{ secrets.PORT }}
-            script:
-              git clone https://github.com/sumitanandgupta/DevOps-Capstone-Project.git
-              cd DevOps-Capstone-Project
-              helm list -A
-              helm install webapp-deploy ./webapp
-              helm list- A
-              kubectl get all
-            
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.appName }}:latest
+      - name: Executing Kubectl command on Kubernetes Server Remotely
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+         host: ${{ secrets.HOST }}
+         username: ${{ secrets.USERNAME }}
+         password: ${{ secrets.PASSWORD }}
+         port: ${{ secrets.PORT }}
+         script: |
+           git clone https://github.com/sumitanandgupta/DevOps-Capstone-Project.git
+           cd DevOps-Capstone-Project
+           helm list -A
+           helm install mavenbuild-dev ./webapp
+           helm list -A
+           kubectl get all
