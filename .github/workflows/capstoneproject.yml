@@ -30,4 +30,18 @@ jobs:
           context: .
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME}}/${{ env.appName }}:latest
-          
+        - name: Execute Kubernetes Command to Deploy code
+          uses: applyboy/ssh-action@v0.1.10
+          with:
+            host: ${{ secrets.HOST }}
+            username: ${{ secrets.USERNAME }}
+            password: ${{ secrets.PASSWORD }}
+            port: ${{ secrets.PORT }}
+            script:
+              git clone https://github.com/sumitanandgupta/DevOps-Capstone-Project.git
+              cd DevOps-Capstone-Project
+              helm list -A
+              helm install webapp-deploy ./webapp
+              helm list- A
+              kubectl get all
+            
